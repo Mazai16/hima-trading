@@ -19,5 +19,17 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          # Configure Git user identity for committing migration changes
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Actions"
+          
+          # Install and initialize Git LFS
+          git lfs install
+          
+          # Checkout a clean local branch to avoid detached HEAD and migrate all image binaries to Git LFS
+          git checkout -B temp-main
+          git lfs migrate import --branches=temp-main --include="*.jpg,*.png,*.jpeg,*.gif,*.ico,*.webp"
+          
+          # Add Hugging Face as remote and push the converted branch to its main branch
           git remote add hf https://oauth2:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/mazai68/hima-trading
-          git push --force hf HEAD:main
+          git push --force hf temp-main:main

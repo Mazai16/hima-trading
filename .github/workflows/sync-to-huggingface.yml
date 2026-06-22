@@ -23,13 +23,42 @@ jobs:
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Actions"
           
-          # Install and initialize Git LFS
+          # Configure Git LFS and limit concurrency to prevent Hugging Face 429 rate limit
+          git config --global lfs.concurrenttransfers 1
           git lfs install
           
           # Checkout a clean local branch to avoid detached HEAD and migrate all image binaries to Git LFS
           git checkout -B temp-main
           git lfs migrate import --branches=temp-main --include="*.jpg,*.png,*.jpeg,*.gif,*.ico,*.webp"
           
-          # Add Hugging Face as remote and push the converted branch to its main branch
+          # Add Hugging Face as remote
           git remote add hf https://oauth2:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/mazai68/hima-trading
-          git push --force hf temp-main:main
+          
+          # Retry git push up to 5 or more times with an exponential backoff delay to bypass transient HF 429 rate limits
+          max_retries=6
+          retry_delay=10 # seconds
+          count=1
+          success=false
+          
+          until [ $count -gt $max_retries ]
+          do
+            echo "==== Push attempt $count of $max_retries ===="
+            # We attempt to push using our oauth2 token url remote hf
+            if git push --force hf temp-main:main; then
+              echo "==== Push succeeded! ===="
+              success=true
+              break
+            else
+              echo "==== Push failed with error code $?. Retrying in $retry_delay seconds... ===="
+              sleep $retry_delay
+              # Double the delay for exponential backoff (e.g., 10s, 20s, 40s, 80s)
+              retry_delay=$((retry_delay * 2))
+              count=$((count + 1))
+            fi
+          done
+
+          if [ "$success" = false ]; then
+            echo "==== Failed to sync after $max_retries attempts. ===="
+            exit 1
+          fi
+

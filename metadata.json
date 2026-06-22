@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Remix: GatePro 全球数字加密货币交易平台",
+  "description": "一款集现货交易、新币快速上市(Go-to-Market)、Launchpad发行、法币买币、持币竞赛、推荐奖励及对外部交易API等模块于一体的高性能专业加密货币交易所。",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
